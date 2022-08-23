@@ -1,0 +1,9 @@
+selenium
+wget
+fastapi
+uvicorn[standard]
+bs4
+python-decouple
+lxml
+behave
+yml

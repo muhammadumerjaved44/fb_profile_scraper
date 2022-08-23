@@ -1,0 +1,48 @@
+version: '3.0'
+
+# list of services in the Docker
+services:
+
+  # fb_scrapper_api container configuration
+  pd-fb_scrapper_api:
+    container_name: pd-fb_scrapper_api
+    # image:
+    build: .
+    stdin_open: true
+    tty: true
+    restart: always
+    depends_on:
+      - selenium_hub
+    command: uvicorn main:app --host 0.0.0.0 --reload
+    volumes:
+      - .:/code
+    ports:
+      - '${FASTAPI_LOCAL_PORT}:${FASTAPI_DOCKER_PORT}'
+      - ${SE_EVENT_BUS_PORT}
+
+    environment:
+      # fb_scrapper_api env
+      POINT_DUTY_ENV: ${POINT_DUTY_ENV}
+
+
+  selenium_hub:
+    container_name: selenium_hub
+    image: selenium/hub:4.0.0-rc-3-20211010
+    ports:
+      - "4442:4442"
+      - "4443:4443"
+      - "${SE_EVENT_BUS_PORT}:${SE_EVENT_BUS_PORT}"
+
+  chromenode:
+    container_name: chromenode
+    image: selenium/node-chrome:4.0.0-rc-3-20211010
+    shm_size: 2gb
+    depends_on:
+      - selenium_hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium_hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    deploy:
+      replicas: 1
+    entrypoint: bash -c 'SE_OPTS="--host $$HOSTNAME" /opt/bin/entry_point.sh'
